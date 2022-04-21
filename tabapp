@@ -164,9 +164,6 @@ run(){
    xdotool windowreparent ${wid##*' '} $tabapp
 }
 
-#   [[ -z $tabapp ]] && spawn "$@" && tabapp=$(bspc subscribe -c 1 node_add)
-
-
 #=======%%  SCRIPT  %%=================================================
 
 cmd=$1; shift
