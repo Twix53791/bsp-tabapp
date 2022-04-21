@@ -4,42 +4,42 @@
 #
 # USAGE:
 # Launch the application appname as a tab into the tabbed instance 'tabbed.emanppa':
-#		tabapp appname							- Run a tabbed application
-#		tabapp appname <yourname>			- Specify a custom tabbed instance name (optionnal)
-#		tabapp -R appname (yourname)		- Reset : kill any previous tabbed instance of the appname
+#		tabapp appname			- Run a tabbed application
+#		tabapp appname <yourname>	- Specify a custom tabbed instance name (optionnal)
+#		tabapp -R appname (yourname)	- Reset : kill any previous tabbed instance of the appname
 #
 # To avoid any ambiguous grep and insure a unique name, tabbed instance names are
 #  set to the name given by the user (or the appname) reversed
 #
 # You can pass arguments:
-#			1) to the application launched if no command is given:
-#						tabapp kitty -e bpytop
-#			2) to tabbed, from the $3 positionnal parameter, with a command:
-#						tabapp add firefox kitty -o Red 	will launch a tabbed instance with a red background
+#	1) to the application launched if no command is given:
+#		tabapp kitty -e bpytop
+#	2) to tabbed, from the $3 positionnal parameter, with a command:
+#		tabapp add firefox kitty -o Red will launch a tabbed instance with a red background
 #
 # Commands [tabapp command arguments]:
 #
 # 	 new <yourname> <args>	 - Create the tabbed instance 'tabbed.yourname'
-#									tabbed.yourname in an instance name for bspwm
-#									you can pass any arguments to tabbed with <args>
+#				tabbed.yourname in an instance name for bspwm
+#				you can pass any arguments to tabbed with <args>
 #
 #	 add PATTERN <yourname> <args>     - Add the window matching the PATTERN into
-#									 the tabbed instance <yourname>, with the <args> to tabbed
-# 					The PATTERN can be a node id, or a class name, or a PID, anything
+#				the tabbed instance <yourname>, with the <args> to tabbed
+# 				The PATTERN can be a node id, or a class name, or a PID, anything
 #  				from the wmctrl output. You can change the wmctrl command to get even
 #  				more possibilities
 #
 #	 gather PATTERN <yourname> <args>  - Gather all nodes matching the PATTERN in
-#										the output of wmctrl -lx command and add them
-#										to the tabbed instance 'tabbed.yourname'
-#										The PATTERN should be a window class name.
+#					the output of wmctrl -lx command and add them
+#					to the tabbed instance 'tabbed.yourname'
+#					The PATTERN should be a window class name.
 #
 # 	The 'gather' and 'add' command can be called with the -R flag:
-#			tabapp add -R PATTERN <tabbed_instance_name>
+#		tabapp add -R PATTERN <tabbed_instance_name>
 #
 #
 #=======================================================================
-#=======%%  FUNCTIONS  %%===============================================
+#=======%%  SETTINGS  %%===============================================
 # Set options to pass to tabbed by default:
 tab_opt=("-c")
 
@@ -78,10 +78,12 @@ gather(){
  # Get win and tab node ids
 	pattern=$1;instance=$2;tabargs=${@:3}
 	[[ -z $pattern ]] && exit
+	
 	mapfile -t nodes < <(getnodes $pattern)
 	focused=$(bspc query -N -n focused)
 	nodes=( "${nodes[@]/${focused,,}}" )
 	[[ -z ${nodes[@]} ]] && exit
+
 	iname=${instance:-$pattern}
 	tabapp=$(spawn $iname ${tabargs[@]})
 
@@ -113,10 +115,12 @@ add(){
  # Get win and tab node ids
 	pattern=$1;instance=$2;tabargs=${@:3}
 	[[ -z $pattern ]] && exit
+	
 	wid=$(getnodes $pattern | tail -1)
 	focused=$(bspc query -N -n focused)
 	wid=${wid##${focused,,}}
 	[[ -z $wid ]] && exit
+	
 	iname=${instance:-$pattern}
 	tabapp=$(spawn $iname ${tabargs[@]})
 
@@ -145,9 +149,10 @@ run(){
  # Run the tabbed app
  	validcmd=$(command -v $1)
  	[[ -z $validcmd ]] && exit
-	$args 2>$tablog &
+	
+	$args 2>/dev/null &
 	wid=$(bspc subscribe -c 1 node_add)
-   tabapp=$(spawn $1)
+   	tabapp=$(spawn $1)
 
 # If not the following, send nodes to tabbed from another desktop crashes bspwm
 	d=$(bspc query -D -n $tabapp)
@@ -168,7 +173,7 @@ cmd=$1; shift
 
 case $cmd in
 	new) spawn "$@";;
-gather) gather "$@";;
+     gather) gather "$@";;
 	add) add "$@";;
  	  *) run $cmd "$@";;
 esac
