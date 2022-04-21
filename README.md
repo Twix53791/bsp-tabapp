@@ -27,7 +27,7 @@ Others user's scripts are found on github to implement tabbed into bspwm. [`tabc
 ## Passing arguments to `tabbed`
 It is possible to pass arguments to tabbed, but only with the commands add, gather and new, not when launching an app, as the arguments will be then passed to the app as showed above. To passed arguments to tabbed, just add them after the command, in the $3 position (the instance name have to be given, so). They will be effective, of course, only when a fresh tabbed instance is launched.
   - `tabapp add kitty kitty -o Red` will launch, if no existing 'kitty' tabbed instance is found, a new instance of tabbed kitty, with a red background color.
-- To pass arguments 'by default', just add them into the tab_opt variable, in the script, as an array: `tab_opt=("-o" "Red")` is the equivalent of the above command.
+- To pass arguments 'by default', just add them into the tab_opt variable, in the script, as an array: `tab_opt=("-o" "Red")` is the equivalent of the above command. By default, I set the -c option, closing the tabbed instance when the last tab is closed.
 
 ## Dependencies
 - `wmctrl`
