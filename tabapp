@@ -1,0 +1,174 @@
+#!/bin/bash
+#
+# BY twix https://github.com/Twix53791
+#
+# USAGE:
+# Launch the application appname as a tab into the tabbed instance 'tabbed.emanppa':
+#		tabapp appname							- Run a tabbed application
+#		tabapp appname <yourname>			- Specify a custom tabbed instance name (optionnal)
+#		tabapp -R appname (yourname)		- Reset : kill any previous tabbed instance of the appname
+#
+# To avoid any ambiguous grep and insure a unique name, tabbed instance names are
+#  set to the name given by the user (or the appname) reversed
+#
+# You can pass arguments:
+#			1) to the application launched if no command is given:
+#						tabapp kitty -e bpytop
+#			2) to tabbed, from the $3 positionnal parameter, with a command:
+#						tabapp add firefox kitty -o Red 	will launch a tabbed instance with a red background
+#
+# Commands [tabapp command arguments]:
+#
+# 	 new <yourname> <args>	 - Create the tabbed instance 'tabbed.yourname'
+#									tabbed.yourname in an instance name for bspwm
+#									you can pass any arguments to tabbed with <args>
+#
+#	 add PATTERN <yourname> <args>     - Add the window matching the PATTERN into
+#									 the tabbed instance <yourname>, with the <args> to tabbed
+# 					The PATTERN can be a node id, or a class name, or a PID, anything
+#  				from the wmctrl output. You can change the wmctrl command to get even
+#  				more possibilities
+#
+#	 gather PATTERN <yourname> <args>  - Gather all nodes matching the PATTERN in
+#										the output of wmctrl -lx command and add them
+#										to the tabbed instance 'tabbed.yourname'
+#										The PATTERN should be a window class name.
+#
+# 	The 'gather' and 'add' command can be called with the -R flag:
+#			tabapp add -R PATTERN <tabbed_instance_name>
+#
+#
+#=======================================================================
+#=======%%  FUNCTIONS  %%===============================================
+# Set options to pass to tabbed by default:
+tab_opt=("-c")
+
+#=======%%  FUNCTIONS  %%===============================================
+
+# Get the nodes matching the PATTERN given in wmctrl -lx
+getnodes(){
+	wmctrl -lx | cut -d' ' -f-4 | grep $1 | cut -d' ' -f1
+}
+
+# Spawn a new tabbed instance specific to an app name
+spawn(){
+	[[ -z $1 ]] && exit
+	name=$(echo $1 | rev); shift
+	instance=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name" | cut -d' ' -f1)
+	if [[ ! -z $instance ]]; then
+		echo $instance
+		return
+	else
+		tabbed -n "tabbed.$name" "${tab_opt[@]}" "$@" &>/dev/null &
+		instance=$(bspc subscribe -c 1 node_add)
+		echo ${instance##*' '}
+	fi
+}
+
+# Gather all nodes matching a pattern and add them into a tabbed instance
+gather(){
+ # Reset if -R flag
+	if [[ "$1" == "-R" ]]; then
+		shift
+		name=$(echo $1 | rev)
+		isrunning=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name" | cut -d' ' -f1)
+		[[ ! -z $isrunning ]] && bspc node $isrunning -c
+	fi
+
+ # Get win and tab node ids
+	pattern=$1;instance=$2;tabargs=${@:3}
+	[[ -z $pattern ]] && exit
+	mapfile -t nodes < <(getnodes $pattern)
+	focused=$(bspc query -N -n focused)
+	nodes=( "${nodes[@]/${focused,,}}" )
+	[[ -z ${nodes[@]} ]] && exit
+	iname=${instance:-$pattern}
+	tabapp=$(spawn $iname ${tabargs[@]})
+
+# If not the following, send nodes to tabbed from another desktop crashes bspwm
+	d=$(bspc query -D -n $tabapp)
+	for node in "${nodes[@]}"; do
+		nd=$(bspc query -D -n $node)
+		[[ $nd != $d ]] &&  bspc node $node -d $d
+	done
+	bspc node -f $tabapp
+
+# Reparent nodes - node can be 'empty', because of "${nodes[@]/${focused,,}}"
+	for node in "${nodes[@]}"; do
+		[[ ! -z $node ]] &&
+			xdotool windowreparent $node $tabapp
+	done
+}
+
+# Add a node to a tabbed instance
+add(){
+ # Reset if -R flag
+	if [[ "$1" == "-R" ]]; then
+		shift
+		name=$(echo $1 | rev)
+		isrunning=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name" | cut -d' ' -f1)
+		[[ ! -z $isrunning ]] && bspc node $isrunning -c
+	fi
+
+ # Get win and tab node ids
+	pattern=$1;instance=$2;tabargs=${@:3}
+	[[ -z $pattern ]] && exit
+	wid=$(getnodes $pattern | tail -1)
+	focused=$(bspc query -N -n focused)
+	wid=${wid##${focused,,}}
+	[[ -z $wid ]] && exit
+	iname=${instance:-$pattern}
+	tabapp=$(spawn $iname ${tabargs[@]})
+
+# If not the following, send nodes to tabbed from another desktop crashes bspwm
+	d=$(bspc query -D -n $tabapp)
+	nd=$(bspc query -D -n $wid)
+	[[ $nd != $d ]] &&  bspc node $wid -d $d
+	bspc node -f $tabapp
+
+ # Add node
+	xdotool windowreparent $wid $tabapp
+}
+
+# Run an application, then tab it into a tabbed instance of the app name
+run(){
+ # Reset if -R flag
+	if [[ "$1" == "-R" ]]; then
+		shift
+		name=$(echo $1 | rev)
+		isrunning=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name" | cut -d' ' -f1)
+		[[ ! -z $isrunning ]] && bspc node $isrunning -c
+	fi
+
+	[[ "$2" == "into" ]] && args="$1" && shift 2 || args="$@"
+
+ # Run the tabbed app
+ 	validcmd=$(command -v $1)
+ 	[[ -z $validcmd ]] && exit
+	$args 2>$tablog &
+	wid=$(bspc subscribe -c 1 node_add)
+   tabapp=$(spawn $1)
+
+# If not the following, send nodes to tabbed from another desktop crashes bspwm
+	d=$(bspc query -D -n $tabapp)
+	nd=$(bspc query -D -n ${wid##*' '})
+	[[ $nd != $d ]] &&  bspc node ${wid##*' '} -d $d
+	bspc node -f $tabapp
+
+# Reparent the new app window to tabbed
+   xdotool windowreparent ${wid##*' '} $tabapp
+}
+
+#   [[ -z $tabapp ]] && spawn "$@" && tabapp=$(bspc subscribe -c 1 node_add)
+
+
+#=======%%  SCRIPT  %%=================================================
+
+cmd=$1; shift
+
+case $cmd in
+	new) spawn "$@";;
+gather) gather "$@";;
+	add) add "$@";;
+ 	  *) run $cmd "$@";;
+esac
