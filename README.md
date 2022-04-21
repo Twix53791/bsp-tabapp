@@ -21,6 +21,8 @@ Others user's scripts are found on github to implement tabbed into bspwm. [`tabc
 - `gather <command> <instancename>` command will graps _any_ node matching the pattern, and send it to the given tabbed instance.
   - `tabapp firefox; tabapp gather kitty firefox` will grasp all the kitty windows in the monitor and send them to the already existing tabbed firefox instance. 
 - `new <instancename>` : it is also possible to create an empty tabbed instance of a given name ; then the instance name is obligatory.
+- The `-R` flag has to be use just after the command, or before the application name if no command is given. If an existing tabbed instance of application/instance name given exist, it will kill it and restart a fresh one. It 'resets' the instance. 
+  - `tabapp -R firefox` or `tabapp add -R nomacs kitty`
 
 ## Passing arguments to `tabbed`
 It is possible to pass arguments to tabbed, but only with the commands add, gather and new, not when launching an app, as the arguments will be then passed to the app as showed above. To passed arguments to tabbed, just add them after the command, in the $3 position (the instance name have to be given, so). They will be effective, of course, only when a fresh tabbed instance is launched.
