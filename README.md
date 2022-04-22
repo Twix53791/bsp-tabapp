@@ -67,7 +67,7 @@ echo $instance > /tmp/bsp_win_instance
 
   - **Libreoffice-tabbed bug fix**. It is possible to bypass in a bit questionable manner this bug sending a 'ctrl+q' key press to tabbed instead of kill/close the all window. Link this script to a key press and you will close each tab one by one when closing tabbed. If libreoffice (but we could extend to other applications, if needed) open a popup window to ask for saving/discarding changes in the file, it waits until the user answers and so forth.
 
-```
+```bash
 id=$(wmctrl -lx | cut -d' ' -f-4 | grep -i $(bspc query -N -n focused))
 tabbed=$(echo $id | grep "tabbed")
 
