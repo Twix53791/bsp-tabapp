@@ -37,7 +37,11 @@ It is possible to pass arguments to tabbed, but only with the commands add, gath
 - `bspwm`
 
 ## Running the script from everywhere
-You can run this script 'manually' from the terminal, but it is intended to be used from other scripts. It can be used in ranger, for example into the rifle config, so rifle will always open a given application tabbed. It an be used into a desktop.file, for xdg-open. It can be used also from bspwm, to open a given application via tabapp and so always tabbed. For that, create a script running in the background, for example launched by bspwmrc at boot, using bspc subscribe node_add. I show here one for libreoffice as its a bit tricky (because libreoffice start with sometimes different class/instance names), even **I not recommand to use tabapp for now for libreoffice, because of a bug**. It comes from the way libreoffice manage files, with .lock files. If a libreoffice instance is killed via `kill` or `xkill`, it crashes (cf. [this issue](https://ask.libreoffice.org/t/close-libreoffice-gracefuly-from-command-line/34120/4). The fix involves a bit of complex coding...
+You can run this script 'manually' from the terminal, but it is intended to be used from other scripts. It can be used in ranger, for example into the rifle config, so rifle will always open a given application tabbed. It an be used into a desktop.file, for xdg-open. 
+
+In ranger, with rifle you can just use, in rifle.conf for example : `mime ^image, X, flag f = tabapp nomacs "$@"` Or a custom script which apply complex rules, sometimes use tabapp, sometimes not : `mime ^image, X, flag f = openrule nomacs "$@"`. I will post soon my own 'openrule' script which automate complex opening rules for all my desktop applications.
+
+It can be used also from bspwm, to open a given application via tabapp and so always tabbed. For that, create a script running in the background, for example launched by bspwmrc at boot, using bspc subscribe node_add. I show here one for libreoffice as its a bit tricky (because libreoffice start with sometimes different class/instance names), moreover, **there is a bug (see below for a fix)** produced when the tabbed instance containing libre office files is killed from outside (bspc node -c, or `kill`, or `xkill`...). It comes from the way libreoffice manage files, with .lock files. If a libreoffice instance is killed from outside it crashes (cf. [this issue](https://ask.libreoffice.org/t/close-libreoffice-gracefuly-from-command-line/34120/4). The best will be to hack the code of tabbed, or making this python script above working, but I am not currently enough skilled to do that.
 
 In your script, that you can start at boot, launching it from bspwmrc
 ```bash
@@ -61,9 +65,30 @@ echo $class > /tmp/bsp_win_class
 echo $instance > /tmp/bsp_win_instance
 ```
 
-**In ranger, with rifle** you can just use, in rifle.conf for example : ```mime ^image, X, flag f = tabapp nomacs "$@"```
-Or a custom script which apply complex rules, sometimes use tabapp, sometimes not : ```mime ^image, X, flag f = openrule nomacs "$@"```
-I will post soon my own 'openrule' script which automate complex opening rules for all my desktop applications.
+  - **Libreoffice-tabbed bug fix**. It is possible to bypass in a bit questionable manner this bug sending a 'ctrl+q' key press to tabbed instead of kill/close the all window. Link this script to a key press and you will close each tab one by one when closing tabbed. If libreoffice (but we could extend to other applications, if needed) open a popup window to ask for saving/discarding changes in the file, it waits until the user answers and so forth.
+
+```
+id=$(wmctrl -lx | cut -d' ' -f-4 | grep -i $(bspc query -N -n focused))
+tabbed=$(echo $id | grep "tabbed")
+
+getchildren(){
+   xwininfo -id ${id%%' '*} -children | \
+   sed -n '/[0-9]\+ \(child\|children\):/,$s/ \+\(0x[0-9a-z]\+\).*/\1/p'
+}
+
+if [[ ! -z $tabbed ]]; then
+   tabs=$(getchildren)
+   for child in $tabs; do
+      saved=$(wmctrl -lx | cut -d' ' -f-4 | grep "soffice.Soffice")
+      until [[ -z $saved ]];do
+         saved=$(bspc query -N -n ${saved%%' '*})
+         sleep .2
+      done
+      xdotool key --window ${id%%' '*}  ctrl+q
+      sleep .15
+   done
+ fi
+ ```
 
 ## Install
 Just put this script into /usr/local/bin or /usr/bin, and use it as a shell command.
