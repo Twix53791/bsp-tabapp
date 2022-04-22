@@ -1,9 +1,11 @@
 # tabapp
-tabapp is a simple script using tabbed into bspwm to launch any application you want in tabs, automatically and without the need of user's keypresses
+Tabapp is a simple script using tabbed into bspwm to launch any application you want in tabs, automatically and without the need of user's keypresses, especially the ones which _cannot_ natively launch into tabbed.
 
 ## Why use tabapp?
 
 Others user's scripts are found on github to implement tabbed into bspwm. [`tabc`](https://github.com/Bachhofer/tabc) is a small but efficient script which allows user to create a tabbed instance, then to add windows to it, _and also remove them_, which is usefull, for _any_ window manager, not only bspwm ; but all this need user's management. [`bsptab`](https://github.com/albertored11/bsptab) is a very complete script base on the former and adding new functionalities, like a deamon which in fact just launch bspc subscribe node_add in the background to add any new node of a given class into tabbed. All of this is beautiful and you should use it if you like a deep control of your tabbed applications, with the possibility to detach tabs from the tabbed container. Personally, I don't use this functionnality. I just want than specific applications _always_ be launched in tabbed. So I wrote this litle script.
+
+**When not use it?** Some applications can be natively launched as child in another window ; for example, [zathura](https://man.archlinux.org/man/zathura.1.en) accept the -e argument to reparent its window to another. Of course, in this case, it is better to use the build-in feature of the application than tabapp. See tabbed man page for examples for other applications.
 
 ## Use
 
