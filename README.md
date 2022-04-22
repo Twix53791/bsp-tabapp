@@ -37,10 +37,36 @@ It is possible to pass arguments to tabbed, but only with the commands add, gath
 - `bspwm`
 
 ## Running the script from everywhere
-You can run this script 'manually' from the terminal, but it is intended to be used from other scripts. It can be used in ranger, for example into the rifle config, so rifle will always open a given application tabbed. It an be used into a desktop.file, for xdg-open. It can be used also from bspwm, to open a given application via tabapp and so always tabbed. For that, create a script running in the background, for example launched by bspwmrc at boot, using bspc subscribe node_add:
+You can run this script 'manually' from the terminal, but it is intended to be used from other scripts. It can be used in ranger, for example into the rifle config, so rifle will always open a given application tabbed. It an be used into a desktop.file, for xdg-open. It can be used also from bspwm, to open a given application via tabapp and so always tabbed. For that, create a script running in the background, for example launched by bspwmrc at boot, using bspc subscribe node_add. I show here one for libreoffice as its a bit tricky (because libreoffice start with sometimes different class/instance names), even **I not recommand to use tabapp for now for libreoffice, because of a bug**. If the tabbed instance is killed with some libreoffice windows, it breaks libreoffice which refuse to open some of the files killed like that. There is no bug if we manually kill each tab inside tabbed with ctrl+q, so I guess tabbed don't close properly the libreoffice windows tabs if killed from outside. 
+
+In your script, that you can start at boot, launching it from bspwmrc
+```bash
+
+bspc subscribe node_add | while read -a msg; do
+  instance=$(cat /tmp/bsp_win_instance)
+  class=$(cat /tmp/bsp_win_class)
+  
+  if [[ "$instance" == "soffice" ]] || [[ "$instance" == "libreoffice" ]]; then
+    wid=$(wmctrl -lx | cut -d' ' -f-4 | grep "soffice\|libreoffice\|eciffoerbil" | cut -d' ' -f1)
+    n=$(echo $wid  | tr ' ' '\n' | wc -l)
+    if [[ $n -gt 1 ]]; then
+      sleep .2;tabapp gather -f libreoffice
+    fi
+  fi
+done
+```
+In bspwm external_rules file:
+```
+echo $class > /tmp/bsp_win_class
+echo $instance > /tmp/bsp_win_instance
+```
+
+**In ranger, with rifle** you can just use, in rifle.conf for example : ```mime ^image, X, flag f = tabapp nomacs "$@"```
+Or a custom script which apply complex rules, sometimes use tabapp, sometimes not : ```mime ^image, X, flag f = openrule nomacs "$@"```
+I will post soon my own 'openrule' script which automate complex opening rules for all my desktop applications.
 
 ## Install
 Just put this script into /usr/local/bin or /usr/bin, and use it as a shell command.
 
 ## Possible issues
-For sure, I will not garantee the stability of this script! I still have to test it on the long run and for sure it can create problems with some specific applications. Also, for now, it creates artifacts when moving windows to a tabbed instance, with the gather or add command, at the former place of the window sent, if not other window occupy the new empty place. It disappear if we 'recover' them with a window, for example setting any window to fullscreen. I am gonna try to fix that. Also, maybe than, when launching an app with tabapp, if this app is not actually launched for any reason, the script will still grab the first next node created to a tabbed instance - another small fix I have to do.
+For sure, I will not garantee the stability of this script! I still have to test it on the long run and for sure it can create problems with some specific applications. Also, for now, it creates artifacts when moving floating windows to a tabbed instance, with the gather or add command, at the former place of the window sent, if not other window occupy the new empty place. It disappear if we 'recover' them with a window, for example setting any window to fullscreen. No problems with tiled windows. I am gonna try to fix that. Also, maybe than, when launching an app with tabapp, if this app is not actually launched for any reason, the script will still grab the first next node created to a tabbed instance - another small fix I have to do. With some applications, it could be quite risky, like with libreoffice : if we kill the tabbed window without before kill each libreoffice tab, it seems to break libreoffice which doesn't open some files anymore.
