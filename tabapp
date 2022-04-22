@@ -19,6 +19,9 @@
 #
 # Commands [tabapp command arguments]:
 #
+#  <add/gather> -f PATTERN  - The focused node will be sent to tabbed if it matches the PATTERN.
+#                             By default, the focused node is always ignored.
+#
 # 	 new <yourname> <args>	 - Create the tabbed instance 'tabbed.yourname'
 #				tabbed.yourname in an instance name for bspwm
 #				you can pass any arguments to tabbed with <args>
@@ -54,9 +57,9 @@ getnodes(){
 spawn(){
 	[[ -z $1 ]] && exit
 	name=$(echo $1 | rev); shift
-	instance=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name" | cut -d' ' -f1)
+	instance=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name")
 	if [[ ! -z $instance ]]; then
-		echo $instance
+		echo ${instance%%' '*}
 		return
 	else
 		tabbed -n "tabbed.$name" "${tab_opt[@]}" "$@" &>/dev/null &
@@ -71,17 +74,19 @@ gather(){
 	if [[ "$1" == "-R" ]]; then
 		shift
 		name=$(echo $1 | rev)
-		isrunning=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name" | cut -d' ' -f1)
-		[[ ! -z $isrunning ]] && bspc node $isrunning -c
+		isrunning=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name")
+		[[ ! -z $isrunning ]] && bspc node ${isrunning%%' '*} -c
 	fi
+	[[ "$1" == "-f" ]] && shift && F=0 || F=1
 
  # Get win and tab node ids
 	pattern=$1;instance=$2;tabargs=${@:3}
 	[[ -z $pattern ]] && exit
 	
 	mapfile -t nodes < <(getnodes $pattern)
-	focused=$(bspc query -N -n focused)
-	nodes=( "${nodes[@]/${focused,,}}" )
+	[[ $F == 1 ]] &&
+		focused=$(bspc query -N -n focused) &&
+		nodes=( "${nodes[@]/${focused,,}}" )
 	[[ -z ${nodes[@]} ]] && exit
 
 	iname=${instance:-$pattern}
@@ -108,17 +113,19 @@ add(){
 	if [[ "$1" == "-R" ]]; then
 		shift
 		name=$(echo $1 | rev)
-		isrunning=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name" | cut -d' ' -f1)
-		[[ ! -z $isrunning ]] && bspc node $isrunning -c
+		isrunning=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name")
+		[[ ! -z $isrunning ]] && bspc node ${isrunning%%' '*} -c
 	fi
+	[[ "$1" == "-f" ]] && shift && F=0 || F=1
 
  # Get win and tab node ids
 	pattern=$1;instance=$2;tabargs=${@:3}
 	[[ -z $pattern ]] && exit
 	
 	wid=$(getnodes $pattern | tail -1)
-	focused=$(bspc query -N -n focused)
-	wid=${wid##${focused,,}}
+	[[ $F == 1 ]] &&
+		focused=$(bspc query -N -n focused) &&
+		wid=${wid##${focused,,}}
 	[[ -z $wid ]] && exit
 	
 	iname=${instance:-$pattern}
