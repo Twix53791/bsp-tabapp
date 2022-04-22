@@ -53,11 +53,7 @@ bspc subscribe node_add | while read -a msg; do
   class=$(cat /tmp/bsp_win_class)
   
   if [[ "$instance" == "soffice" ]] || [[ "$instance" == "libreoffice" ]]; then
-    wid=$(wmctrl -lx | cut -d' ' -f-4 | grep "soffice\|libreoffice\|eciffoerbil" | cut -d' ' -f1)
-    n=$(echo $wid  | tr ' ' '\n' | wc -l)
-    if [[ $n -gt 1 ]]; then
-      sleep .2;tabapp gather -f libreoffice
-    fi
+    tabapp add -f ${msg[4]} libreoffice
   fi
 done
 ```
