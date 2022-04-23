@@ -218,7 +218,7 @@ run(){
 app=$1; shift
 
 case $app in
- gather) gather "$@";;
+      gather) gather "$@";;
 	 add) add "$@";;
  	   *) run $app "$@";;
 esac
