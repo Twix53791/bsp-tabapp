@@ -35,8 +35,8 @@ It is possible to pass arguments to tabbed, but only with the commands add, gath
 ## Dependencies
 - `wmctrl`
 - `xdotool`
-- `tabbed` can be installed from the [suckless site](https://tools.suckless.org/tabbed/) or from the AUR repository ; it is recommanded to install tabbed-git then.
 - `bspwm`
+- `tabbed` can be installed from the [suckless site](https://tools.suckless.org/tabbed/) or from the AUR repository ; it is recommanded to install tabbed-git then. But if you want a patched tabbed, or your arrive to patch it succesfully (which is not my case), or you find a fortunate git hub repo implementing your wanted patches. There is plenty. Personnaly, I use only the hidetabs patch, from [this repo](https://github.com/hXtreme/suckless-tabbed). Just git clone, then, as root is something if wrong, `make clean install` as the read me advise.
 
 ## Running the script from everywhere
 You can run this script 'manually' from the terminal, but it is intended to be used from other scripts. It can be used in ranger, for example into the rifle config, so rifle will always open a given application tabbed. It an be used into a desktop.file, for xdg-open. 
@@ -62,8 +62,39 @@ In bspwm external_rules file:
 echo $class > /tmp/bsp_win_class
 echo $instance > /tmp/bsp_win_instance
 ```
+  - **A more advanced script for libreoffice**. 
+  This script will tab libreoffice automatically, but only the windows which are not "dialog windows" (like popup windows, oening files, etc.), and only when a second libreoffice instance is started. So, when you open only one file in libreoffice, libreoffice will not be tabbed. Good for reliability : you still have access to a 'normal' libreoffice, in case of bug. Moreover, with only one window, tabbed is not needed. 
+  In a first script:
+  ```bspc subscribe node_add | while read -a msg; do /path-to/extended_rules.sh ${msg[4]}; done```
+  In a second one, mine called extended_rules:
+  ```bash
+  node=$1
+  class=$(cat /tmp/bsp_win_class)   # From the modified bspwm external_rules file, see above
+  
+  libreoffice(){
+   dialog=$(xprop -id $1 | grep "WINDOW_TYPE_DIALOG")   # If the window is a dialog window, don't tab it
+   if [[ -z $dialog ]]; then
+      togrep="Soffice\|libreoffice\|eciffoerbil"        # It will tab libreoffice only when a second instance is opened
+      isrunning=$(wmctrl -lx | cut -d' ' -f-4 | grep "$togrep" | wc -l)
+      [[ $isrunning -gt 1 ]] && tabapp add -f $1 libreoffice
+   fi
+  }
 
-  - **Libreoffice-tabbed bug fix**. It is possible to bypass in a bit questionable manner this bug sending a 'ctrl+q' key press to tabbed instead of kill/close the all window. Link this script to a key press and you will close each tab one by one when closing tabbed. If libreoffice (but we could extend to other applications, if needed) open a popup window to ask for saving/discarding changes in the file, it waits until the user answers and so forth.
+  tabbed_libreoffice(){
+    tabapp gather libreoffice libreoffice
+  }
+  
+  instance=$(cat /tmp/bsp_win_instance)
+     if [[ $instance == libreoffice ]]; then
+      libreoffice $1
+   elif [[ $class == Soffice ]]; then
+      libreoffice $1
+   elif [[ $instance == tabbed.eciffoerbil ]]; then
+      tabbed_libreoffice $1
+   fi
+   ```
+   
+  - **Libreoffice-tabbed bug fix**. It is possible to bypass in a bit questionable manner this bug sending a 'ctrl+q' key press to tabbed instead of kill/close the all window. Link this script to a key press and you will close each tab one by one when closing tabbed. If libreoffice (but we could extend to other applications, if needed) open a popup window to ask for saving/discarding changes in the file, it waits until the user answers and so forth. It is not completely reliable, that's why it is good to have to possibility to run libre office outside tabbed, so if it crash, you can access it again normally (and it will recover the files corrupted).
 
 ```bash
 #!/bin/bash
