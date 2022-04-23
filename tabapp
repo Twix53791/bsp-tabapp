@@ -74,7 +74,8 @@ gather(){
  # Reset if -R flag
 	if [[ "$1" == "-R" ]]; then
 		shift
-		name=$(echo $1 | rev)
+		nme=${2:-$1}
+		name=$(echo $nme | rev)
 		isrunning=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name")
 		[[ ! -z $isrunning ]] &&
          bspc node ${isrunning%%' '*} -c &&
@@ -123,7 +124,8 @@ add(){
  # Reset if -R flag
 	if [[ "$1" == "-R" ]]; then
 		shift
-		name=$(echo $1 | rev)
+		nme=${2:-$1}
+		name=$(echo $nme | rev)
 		isrunning=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name")
 		[[ ! -z $isrunning ]] &&
 			bspc node ${isrunning%%' '*} -c &&
