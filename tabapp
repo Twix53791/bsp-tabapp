@@ -51,7 +51,7 @@ tab_opt=("-c")
 
 # Get the nodes matching the PATTERN given in wmctrl -lx
 getnodes(){
-	wmctrl -lxp | cut -d' ' -f-4 | grep $1 | cut -d' ' -f1
+	wmctrl -lxp | tr -s ' ' | cut -d' ' -f-4 | grep $1 | cut -d' ' -f1
 }
 
 # Spawn a new tabbed instance specific to an app name
