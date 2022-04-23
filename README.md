@@ -9,28 +9,29 @@ Others user's scripts are found on github to implement tabbed into bspwm. [`tabc
 
 ## Use
 
-`tabapp <command> <arguments>`
+- **If the command is an application name**, it just launch the application into a tabbed instance. You can :
+  - pass arguments: `tabapp kitty -e bpytop` will launch bpytop into kitty into tabbed.
+  - specify an instance name with `into` ; you can stil pass arguments to the app, after the instance name : `tabapp kitty into toto -e bpytop` will name the tabbed instance 'toto', and launch into it `kitty -e bpytop`.
+  - run into an existing tabbed instance if the name specified after `into` is the name of an existing tabbed instance.
+  - use the -R flag (cf. below) : tabapp kitty -R -e bpytop
 
-- **If the command is an application name**, it just launch the application into a tabbed instance. You can pass arguments:
-  - `tabapp kitty -e bpytop` will launch bpytop into kitty into tabbed
-  Or you can specify a specific tabbed instance where to launch the application:
-  - `tabapp firefox into kitty` will launch firefox into the 'kitty' tabbed instance. The syntax is: `tabapp <appname> into <instancename>. Then you can't pass arguments to the application (but you could easily change that...).
-- **What is a 'tabbed instance'?** Tabapp launch by default a tabbed window with an _instance_ name corresponding to the application name. Actually, is the application reversed, to avoid to 'grep' by accident the tabbed window when grabbing the windows of an application by its name in others scripts. You can specify an instance name, but it is optional. **When you launch any tabapp command, if a tabbed instance of the name of the application/instance name you specify exist, the command will add the windows to the existing tabbed instance**.
+- **What is a 'tabbed instance'?** Tabapp launch by default a tabbed window with an _instance_ name corresponding to the application name. Actually, _is the application reversed_, to avoid to 'grep' by accident the tabbed window when grabbing the windows of an application by its name in others scripts. You can specify an instance name, but it is optional. **When you launch any tabapp command, if a tabbed instance of the name of the application/instance name you specify exist, the command will add the windows to the existing tabbed instance**.
   - `tabapp kitty;tabapp kitty` will launch two kitty tabs into a unique tabbed instance with an instance name 'tabbed.yttik'.
-- `add <pattern> <instancename>` command will grasp the last node matching the `<pattern>` given to the `<instancename>` tabbed instance, or if not given the `<pattern>` tabbed instance. The pattern can be a node id, or a class name, or even a PID ; anything the wmctrl command can display, as it search into its output (you can change that...).
-  - `tabapp add firefox` will grasp the node id of the (last, if multiple matches) match of "1564" pid into the output of `wmctrl -lx`, and send this window to an existing/a new tabbed instance named 'tabbed.xofreif'.
-  - `tabbed add 1564 kitty` will send the application of the pid 1564 to the kitty tabbed instance.
-- `gather <command> <instancename>` command will graps _any_ node matching the pattern, and send it to the given tabbed instance.
-  - `tabapp firefox; tabapp gather kitty firefox` will grasp all the kitty windows in the monitor and send them to the already existing tabbed firefox instance. 
-- `new <instancename>` : it is also possible to create an empty tabbed instance of a given name ; then the instance name is obligatory.
-- The `-R` flag has to be use just after the command, or before the application name if no command is given. If an existing tabbed instance of application/instance name given exist, it will kill it and restart a fresh one. It 'resets' the instance. 
+
+- **Commands, flags**
+  `tabapp <command> <flag> <pattern> <instancename> <arguments>` : all after the command is optionnal, except the <pattern>
+  - `add <pattern> <instancename>` command will grasp the last node matching the `<pattern>` given to the `<instancename>` tabbed instance, or if not given the `<pattern>` tabbed instance. The pattern can be a node id, or a class name, or even a PID ; anything the `wmctrl -lxp` command can display, as it search into its output (you can change that...).
+    - `tabapp add 1564 firefox` will grasp the node id of the (last, if multiple matches) match of "1564" pid, and send its window to an existing/a new tabbed instance named 'tabbed.xofreif'.
+  - `gather` command will graps _any_ node matching the pattern, and send it to the given tabbed instance. 
+    - `tabapp firefox; tabapp gather kitty firefox` will grasp all the kitty windows in the monitor and send them to the already existing tabbed firefox instance. 
+  - `-R` : the -R flag reset any existing instance, so first kill it with all its inside tabs, them create a new one. 
   - `tabapp -R firefox` or `tabapp add -R nomacs kitty`
-- Normally, tabapp does not allow to move the focused node into tabbed. In some situations it is usefull to bypass this behavior and forcing the tabbing by passing the `-f` argument after the command, as -R. -R and -f can't be currently combinated.
+  - `-f` : by default, tabapp add any tab matching the pattern to the instance, even the focused window. In some situations it is usefull to avoid this behavior. The -f flag ignores the focused window.
 
 ## Passing arguments to `tabbed`
-It is possible to pass arguments to tabbed, but only with the commands add, gather and new, not when launching an app, as the arguments will be then passed to the app as showed above. To passed arguments to tabbed, just add them after the command, in the $3 position (the instance name have to be given, so). They will be effective, of course, only when a fresh tabbed instance is launched.
-  - `tabapp add kitty kitty -o Red` will launch, if no existing 'kitty' tabbed instance is found, a new instance of tabbed kitty, with a red background color.
-- To pass arguments 'by default', just add them into the tab_opt variable, in the script, as an array: `tab_opt=("-o" "Red")` is the equivalent of the above command. By default, I set the -c option, closing the tabbed instance when the last tab is closed.
+It is possible to pass arguments to tabbed, but only with the commands add and gather, not when launching an app, as the arguments will be then passed to the app as showed above (it could be enable easily, if needed). To passed arguments to tabbed, just add them after the command, in the $3 position (the instance name have to be given, so). They will be effective, of course, only when a fresh tabbed instance is launched.
+  - `tabapp add kitty -o Red` will add the kitty window matched, if no existing 'kitty' tabbed instance is found, to a new instance of tabbed 'kitty', with a red background color. If an existing 'kitty' instance exist, the arguments will have no effect on tabbed, of course.
+  - To pass arguments 'by default', just add them into the tab_opt variable, in the script, as an array: `tab_opt=("-o" "Red")` is the equivalent of the above command. By default, I set the -c option, closing the tabbed instance when the last tab is closed.
 
 ## Dependencies
 - `wmctrl`
@@ -41,7 +42,7 @@ It is possible to pass arguments to tabbed, but only with the commands add, gath
 ## Running the script from everywhere
 You can run this script 'manually' from the terminal, but it is intended to be used from other scripts. It can be used in ranger, for example into the rifle config, so rifle will always open a given application tabbed. It an be used into a desktop.file, for xdg-open. 
 
-In ranger, with rifle you can just use, in rifle.conf for example : `mime ^image, X, flag f = tabapp nomacs "$@"` Or a custom script which apply complex rules, sometimes use tabapp, sometimes not : `mime ^image, X, flag f = openrule nomacs "$@"`. I will post soon my own 'openrule' script which automate complex opening rules for all my desktop applications.
+In ranger, with rifle you can just use, in rifle.conf for example : `mime ^image, X, flag f = tabapp nomacs "$@"` Or a custom script which apply complex rules, sometimes use tabapp, sometimes not : `mime ^image, X, flag f = openrule nomacs "$@"`. I will post soon my own 'openrule' script which automates complex opening rules for all my desktop applications.
 
 It can be used also from bspwm, to open a given application via tabapp and so always tabbed. For that, create a script running in the background, for example launched by bspwmrc at boot, using bspc subscribe node_add. I show here one for libreoffice as its a bit tricky (because libreoffice start with sometimes different class/instance names), moreover, **there is a bug (see below for a fix)** produced when the tabbed instance containing libre office files is killed from outside (bspc node -c, or `kill`, or `xkill`...). It comes from the way libreoffice manage files, with .lock files. If a libreoffice instance is killed from outside it crashes (cf. [this issue](https://ask.libreoffice.org/t/close-libreoffice-gracefuly-from-command-line/34120/4). The best will be to hack the code of tabbed, or making this python script above working, but I am not currently enough skilled to do that.
 
