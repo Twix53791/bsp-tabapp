@@ -4,45 +4,46 @@
 #
 # USAGE:
 # Launch the application appname as a tab into the tabbed instance 'tabbed.emanppa':
-#		tabapp appname			- Run a tabbed application
-#		tabapp appname <yourname>	- Specify a custom tabbed instance name (optionnal)
-#		tabapp -R appname (yourname)	- Reset : kill any previous tabbed instance of the appname
+#		tabapp appname							- Run a tabbed application
+#		tabapp appname into <yourname>	- Specify a custom tabbed instance name (optionnal)
+#		tabapp appname -R				- Reset : kill any previous tabbed instance of the appname
+#
+#		tabapp firefox -R into kitty	: will launch firefox into the tabbed instance named ‘kitty’,
+#						  reseting it if already existing
 #
 # To avoid any ambiguous grep and insure a unique name, tabbed instance names are
 #  set to the name given by the user (or the appname) reversed
 #
 # You can pass arguments:
-#	1) to the application launched if no command is given:
-#		tabapp kitty -e bpytop
-#	2) to tabbed, from the $3 positionnal parameter, with a command:
-#		tabapp add firefox kitty -o Red will launch a tabbed instance with a red background
+#			1) to the application launched if no command is given:
+#						tabapp kitty -e bpytop
+#			2) to tabbed, from the $3 positionnal parameter, with a command:
+#				tabapp add -R firefox kitty -o Red 	will launch (or reset, if existing) 
+#									a tabbed instance with a red background
 #
 # Commands [tabapp command arguments]:
 #
-#  <add/gather> -f PATTERN  - The focused node will be sent to tabbed if it matches the PATTERN.
-#                             By default, the focused node is always ignored.
-#
-# 	 new <yourname> <args>	 - Create the tabbed instance 'tabbed.yourname'
-#				tabbed.yourname in an instance name for bspwm
-#				you can pass any arguments to tabbed with <args>
-#
 #	 add PATTERN <yourname> <args>     - Add the window matching the PATTERN into
-#				the tabbed instance <yourname>, with the <args> to tabbed
-# 				The PATTERN can be a node id, or a class name, or a PID, anything
-#  				from the wmctrl output. You can change the wmctrl command to get even
-#  				more possibilities
+#					the tabbed instance <yourname>, with the <args> to tabbed
+# 					The PATTERN can be a node id, or a class name, or a PID, anything
+#  					from the wmctrl output. You can change the wmctrl command to get even
+#  					more possibilities
 #
-#	 gather PATTERN <yourname> <args>  - Gather all nodes matching the PATTERN in
+#	 gather PATTERN <yourname> <args>  - Gather ALL nodes matching the PATTERN in
 #					the output of wmctrl -lx command and add them
 #					to the tabbed instance 'tabbed.yourname'
 #					The PATTERN should be a window class name.
 #
 # 	The 'gather' and 'add' command can be called with the -R flag:
-#		tabapp add -R PATTERN <tabbed_instance_name>
+#			tabapp gather -f kitty : gather all kitty windows except the focused one
+#						 and tab them into a tabbed instance named ‘kitty’
+#
+#	<add/gather> -f PATTERN	 - By default, the focused node is sent to tabbed, if added or gathered
+#				   Use the -f flag to avoid this behavior and to ignore the focused node
 #
 #
 #=======================================================================
-#=======%%  SETTINGS  %%===============================================
+#=======%%  SETTINGS  %%================================================
 # Set options to pass to tabbed by default:
 tab_opt=("-c")
 
@@ -58,8 +59,10 @@ spawn(){
 	[[ -z $1 ]] && exit
 	name=$(echo $1 | rev); shift
 	instance=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name")
+	notify-send "instance $instance"
 	if [[ ! -z $instance ]]; then
 		echo ${instance%%' '*}
+		notify-send ${instance%%' '*}
 		return
 	else
 		tabbed -n "tabbed.$name" "${tab_opt[@]}" "$@" &>/dev/null &
@@ -75,15 +78,18 @@ gather(){
 		shift
 		name=$(echo $1 | rev)
 		isrunning=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name")
-		[[ ! -z $isrunning ]] && bspc node ${isrunning%%' '*} -c
-	fi
-	[[ "$1" == "-f" ]] && shift && F=0 || F=1
-
+		[[ ! -z $isrunning ]] &&
+         bspc node ${isrunning%%' '*} -c &&
+         sleep .1
+   elif [[ "$1" == "-f" ]]; then
+      F=1 && shift
+   fi
+   
  # Get win and tab node ids
 	pattern=$1;instance=$2;tabargs=${@:3}
 	[[ -z $pattern ]] && exit
-	
-	mapfile -t nodes < <(getnodes $pattern)
+
+	mapfile -t nodes < <(getnodes ${pattern,,})
 	[[ $F == 1 ]] &&
 		focused=$(bspc query -N -n focused) &&
 		nodes=( "${nodes[@]/${focused,,}}" )
@@ -103,8 +109,15 @@ gather(){
 # Reparent nodes - node can be 'empty', because of "${nodes[@]/${focused,,}}"
 	for node in "${nodes[@]}"; do
 		[[ ! -z $node ]] &&
+			arehidden+=($(bspc query -N -n $node -n .hidden))
 			xdotool windowreparent $node $tabapp
 	done
+
+# Unhide the hidden nodes
+	for hidden in "${arehidden[@]}";do
+		bspc node $hidden -g hidden=off
+	done
+
 }
 
 # Add a node to a tabbed instance
@@ -114,20 +127,25 @@ add(){
 		shift
 		name=$(echo $1 | rev)
 		isrunning=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name")
-		[[ ! -z $isrunning ]] && bspc node ${isrunning%%' '*} -c
+		[[ ! -z $isrunning ]] &&
+			bspc node ${isrunning%%' '*} -c &&
+			sleep .1
+	elif [[ "$1" == "-f" ]]; then
+		F=1 && shift
 	fi
-	[[ "$1" == "-f" ]] && shift && F=0 || F=1
 
- # Get win and tab node ids
+ # Get win and tab node ids, as the args to pass to tabbed
 	pattern=$1;instance=$2;tabargs=${@:3}
 	[[ -z $pattern ]] && exit
-	
-	wid=$(getnodes $pattern | tail -1)
+
+	wid=$(getnodes ${pattern,,} | tail -1)
 	[[ $F == 1 ]] &&
 		focused=$(bspc query -N -n focused) &&
 		wid=${wid##${focused,,}}
 	[[ -z $wid ]] && exit
-	
+	# Check if the window node is hidden
+ 	ishidden=$(bspc query -N -n $wid -n .hidden)
+
 	iname=${instance:-$pattern}
 	tabapp=$(spawn $iname ${tabargs[@]})
 
@@ -139,27 +157,50 @@ add(){
 
  # Add node
 	xdotool windowreparent $wid $tabapp
+ # Unhide is hidden
+ 	[[ ! -z $ishidden ]] && bspc node $wid -g hidden=off
 }
 
 # Run an application, then tab it into a tabbed instance of the app name
 run(){
+	cmd=$1
+	nme=$cmd
+	shift
+	
  # Reset if -R flag
 	if [[ "$1" == "-R" ]]; then
 		shift
-		name=$(echo $1 | rev)
-		isrunning=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name" | cut -d' ' -f1)
-		[[ ! -z $isrunning ]] && bspc node $isrunning -c
+		[[ "$1" == "into" ]] && nme=$2 && shift 2
+		name=$(echo $nme | rev)
+		isrunning=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name")
+		[[ ! -z $isrunning ]] &&
+			bspc node ${isrunning%%' '*} -c &&
+			sleep .1
+	elif [[ "$1" == "-f" ]];then
+		shift		# do nothing, but don't break the command
+		[[ "$1" == "into" ]] && nme=$2 && shift 2
+	elif [[ "$1" == "into" ]]; then
+		nme=$2
+		shift 3
+	elif [[ -z $1 ]]; then
+		noargs=1
 	fi
 
-	[[ "$2" == "into" ]] && args="$1" && shift 2 || args="$@"
-
  # Run the tabbed app
- 	validcmd=$(command -v $1)
+ 	validcmd=$(command -v $cmd)
  	[[ -z $validcmd ]] && exit
-	
-	$args 2>/dev/null &
+
+ #	wid=$(bspc subscribe -c 1 node_add)
+	if [[ -z $noargs ]]; then
+		$cmd "$@" 2>/dev/null &
+	else
+		$cmd 2>/dev/null &
+	fi
+
+# Grabs from bspc subscribe the id of the node created
+# Creates the tabbed instance named $name
 	wid=$(bspc subscribe -c 1 node_add)
-   	tabapp=$(spawn $1)
+   tabapp=$(spawn $nme)
 
 # If not the following, send nodes to tabbed from another desktop crashes bspwm
 	d=$(bspc query -D -n $tabapp)
@@ -171,13 +212,17 @@ run(){
    xdotool windowreparent ${wid##*' '} $tabapp
 }
 
+
 #=======%%  SCRIPT  %%=================================================
 
-cmd=$1; shift
+app=$1; shift
 
-case $cmd in
-	new) spawn "$@";;
-     gather) gather "$@";;
-	add) add "$@";;
- 	  *) run $cmd "$@";;
+case $app in
+ gather) gather "$@";;
+	 add) add "$@";;
+ 	   *) run $app "$@";;
 esac
+
+# Temporary. In bspwm, tabbing a floating window leaves a 'ghost' window or some artefacts
+# This "refresh" the screen to get rid of them. I would like to find a cleaner way...
+bspc desktop -l next;bspc desktop -l next
