@@ -77,7 +77,7 @@ echo $instance > /tmp/bsp_win_instance
    if [[ -z $dialog ]]; then
       togrep="Soffice\|libreoffice\|eciffoerbil"        # It will tab libreoffice only when a second instance is opened
       isrunning=$(wmctrl -lx | cut -d' ' -f-4 | grep "$togrep" | wc -l)
-      [[ $isrunning -gt 1 ]] && tabapp add -f $1 libreoffice
+      [[ $isrunning -gt 1 ]] && tabapp add $1 libreoffice
    fi
   }
 
