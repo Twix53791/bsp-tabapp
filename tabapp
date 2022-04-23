@@ -51,7 +51,7 @@ tab_opt=("-c")
 
 # Get the nodes matching the PATTERN given in wmctrl -lx
 getnodes(){
-	wmctrl -lx | cut -d' ' -f-4 | grep $1 | cut -d' ' -f1
+	wmctrl -lxp | cut -d' ' -f-4 | grep $1 | cut -d' ' -f1
 }
 
 # Spawn a new tabbed instance specific to an app name
@@ -59,10 +59,8 @@ spawn(){
 	[[ -z $1 ]] && exit
 	name=$(echo $1 | rev); shift
 	instance=$(wmctrl -lx | cut -d' ' -f-4 | grep "tabbed.$name")
-	notify-send "instance $instance"
 	if [[ ! -z $instance ]]; then
 		echo ${instance%%' '*}
-		notify-send ${instance%%' '*}
 		return
 	else
 		tabbed -n "tabbed.$name" "${tab_opt[@]}" "$@" &>/dev/null &
