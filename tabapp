@@ -41,11 +41,31 @@
 #	<add/gather> -f PATTERN	 - By default, the focused node is sent to tabbed, if added or gathered
 #				   Use the -f flag to avoid this behavior and to ignore the focused node
 #
+## Settings  ###
+#
+#     tab_opt        : pass 'default' arguments to tabbed. Default:
+#                          -c    : close tabbed when the last tab is closed
+#                          -p -1 : open a new tab at the last position (right side)
+#     newtab_command : will spawn this command into every new tab
+#                      By default, the new tab is open opened automatically when tabbed start
+#                       (see -s flag in the spawn function below), but only manually when you
+#                       press Ctrl+Shift+Return
 #
 #=======================================================================
 #=======%%  SETTINGS  %%================================================
 # Set options to pass to tabbed by default:
 tab_opt=("-c")
+
+# Set a command to run into every 'new tab' you can spawn with Ctrl+Shift+Return
+#  If the value is not set, the spawning of a new tab will not be activated in tabbed#
+#     Examples:   newtab_cmd=('ranger')
+#                 newtab_cmd=('bash' '-c' 'ls;sleep 3')
+#                 newtab_cmd=('bash' '-c' '-i' 'a command sourced via .bashrc/.zshrc')
+#
+[[ -f /usr/local/bin/tabbed-fzf ]] && newtab_cmd=('tabbed-fzf') ||
+   newtab_cmd=('bash' '-c' 'echo "Customize your own new tab command in tabapp";read')
+#  To run a simple st terminal into the new tab uncomment:
+#newtab_cmd=0
 
 #=======%%  FUNCTIONS  %%===============================================
 
@@ -63,7 +83,13 @@ spawn(){
 		echo ${instance%%' '*}
 		return
 	else
-		tabbed -n "tabbed.$name" "${tab_opt[@]}" "$@" &>/dev/null &
+		if [[ ! -z $newtab_cmd ]] && [[ $newtab_cmd != 0 ]]; then
+         		tabbed -n "tabbed.$name" "${tab_opt[@]}" "$@" -r 2 -s st -w '' -e "${newtab_cmd[@]}" &>/dev/null &
+      		elif [[ ! -z $newtab_cmd ]] && [[ ! -z $(command -v st) ]; then
+         		tabbed -n "tabbed.$name" "${tab_opt[@]}" "$@" -r 2 -s st -w '' &>/dev/null &
+      		else
+         		tabbed -n "tabbed.$name" "${tab_opt[@]}" "$@" &>/dev/null &
+      		fi
 		instance=$(bspc subscribe -c 1 node_add)
 		echo ${instance##*' '}
 	fi
