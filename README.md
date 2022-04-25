@@ -37,7 +37,7 @@ It is possible to pass arguments to tabbed, but only with the commands add and g
 - `wmctrl`
 - `xdotool`
 - `bspwm`
-- `tabbed` can be installed from the [suckless site](https://tools.suckless.org/tabbed/) or from the AUR repository ; it is recommanded to install tabbed-git then. But if you want a patched tabbed, or your arrive to patch it succesfully (which is not my case), or you find a fortunate git hub repo implementing your wanted patches. There is plenty. Personnaly, I use only the hidetabs patch, from [this repo](https://github.com/hXtreme/suckless-tabbed). Just git clone, then, as root is something if wrong, `make clean install` as the read me advise.
+- `tabbed` can be installed from the [suckless site](https://tools.suckless.org/tabbed/) or from the AUR repository ; it is recommanded to install tabbed-git then. But if you want a patched tabbed : or your arrive to patch it succesfully (which is not my case), or you find a fortunate git hub repo implementing your wanted patches. There is plenty. Personnaly, I use only the hidetabs patch, from [this repo](https://github.com/hXtreme/suckless-tabbed). Just git clone, then, as root is something if wrong, `make clean install` as the read.me advise.
 
 ## Running the script from everywhere
 You can run this script 'manually' from the terminal, but it is intended to be used from other scripts. It can be used in ranger, for example into the rifle config, so rifle will always open a given application tabbed. It an be used into a desktop.file, for xdg-open. 
